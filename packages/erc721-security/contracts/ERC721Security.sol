@@ -137,7 +137,6 @@ contract ERC721Security is
         platformFeeBps = _platformFeeBps;
 
         _owner = _defaultAdmin;
-        nftRecipientForBridge = _defaultAdmin;
         _setupRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
         _setupRole(MINTER_ROLE, _defaultAdmin);
 
@@ -146,7 +145,6 @@ contract ERC721Security is
 
         _setupRole(TRANSFER_ROLE, _defaultAdmin);
         _setupRole(TRANSFER_ROLE, address(0));
-        whitelist[_initialApprovedAddress]=true;
 
         emit PrimarySaleRecipientUpdated(_saleRecipient);
         emit PlatformFeeInfoUpdated(_platformFeeRecipient, _platformFeeBps);
@@ -280,11 +278,6 @@ contract ERC721Security is
     /// @dev Lets a module admin set the URI for contract-level metadata.
     function setContractURI(string calldata _uri) external onlyRole(DEFAULT_ADMIN_ROLE) {
         contractURI = _uri;
-    }
-
-        /// @dev Lets a module admin set a new owner for the contract. The new owner must be a module admin.
-    function setNftRecipientForBridge(address _newNftRecipientForBridge) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        nftRecipientForBridge = _newNftRecipientForBridge;
     }
 
     ///     =====   Getter functions    =====

@@ -37,6 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             royaltyBps,
             platformFeeBps,
             platformFeeRecipient,
+            platformFeeRecipient
           ],
         },
       },

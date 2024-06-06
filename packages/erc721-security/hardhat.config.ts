@@ -32,9 +32,10 @@ const config: HardhatUserConfig = {
       },
     },
     base: {
-      url: `https://mainnet.base.org`,
+      url: "https://base-rpc.publicnode.com",
       accounts: [`${process.env.PRIVATE_KEY}`],
       saveDeployments: true,
+      chainId: 8453,
       verify: {
         etherscan: {
           apiKey: `${process.env.ETHERSCAN_BASE}`,
