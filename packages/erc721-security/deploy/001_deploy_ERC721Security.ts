@@ -20,7 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const platformFeeBps = 1000;
   const platformFeeRecipient = deployer;
 
-  await deploy('TokenERC721Bridge', {
+  await deploy('ERC721Security', {
     from: deployer,
     proxy: {
       execute: {
