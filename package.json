@@ -1,0 +1,17 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "lerna": "^7.3.1"
+  },
+  "scripts": {
+    "build": "lerna run build",
+    "test": "lerna run test",
+    "release": "git reset --hard && lerna run deploy-release"
+  }
+  
+}
