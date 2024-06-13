@@ -515,5 +515,17 @@ contract ERC721Security is
         _approve(to, tokenId);
     }
 
+    function verifyTokenAtAddress(address _contractAddress) external view returns (bool) {
+        SecurityInfo storage info = collection[_contractAddress];
+        require(info.contractAddress != address(0), "Token does not exist");
+
+        // Get the hash of the deployed bytecode for the contract at the given address
+        bytes32 codeHash;
+        assembly {
+            codeHash := extcodehash(_contractAddress)
+        }
+
+        return uint256(codeHash) == info.hashBytecode;
+    }
 
 }
