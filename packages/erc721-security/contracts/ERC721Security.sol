@@ -4,7 +4,8 @@ pragma solidity ^0.8.11;
 /// @author auditfortess
 
 // Interface
-import { ITokenERC721 } from "@thirdweb-dev/contracts/prebuilts/interface/token/ITokenERC721.sol";
+import { ISecurityTokenERC721 } from "./interface/ISecurityTokenERC721.sol";
+import { IAuditfortessContract } from "./interface/IAuditfortessContract.sol";
 
 import "@thirdweb-dev/contracts/infra/interface/IThirdwebContract.sol";
 import "@thirdweb-dev/contracts/extension/interface/IPlatformFee.sol";
@@ -39,9 +40,13 @@ import "@thirdweb-dev/contracts/lib/FeeType.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 
+// TODO
+// add proxy support
+// check if the contract is proxy - check the address of the implementation
+
 contract ERC721Security is
     Initializable,
-    IThirdwebContract,
+    IAuditfortessContract,
     IOwnable,
     IRoyalty,
     IPrimarySale,
@@ -52,19 +57,30 @@ contract ERC721Security is
     Multicall,
     AccessControlEnumerableUpgradeable,
     ERC721EnumerableUpgradeable,
-    ITokenERC721,
+    ISecurityTokenERC721,
     NFTMetadata
 {
     using ECDSAUpgradeable for bytes32;
     using StringsUpgradeable for uint256;
 
-    bytes32 private constant MODULE_TYPE = bytes32("TokenERC721");
+    struct SecurityInfo {
+        string uri;
+        uint256 hashBytecode;
+        uint256 hashInitData;
+        bool secure;
+        address contractAddress;
+    }
+
+    mapping(address => SecurityInfo) public collection;
+
+    bytes32 private constant MODULE_TYPE = bytes32("ERC721Security");
     uint256 private constant VERSION = 1;
 
     bytes32 private constant TYPEHASH =
         keccak256(
             "MintRequest(address to,address royaltyRecipient,uint256 royaltyBps,address primarySaleRecipient,string uri,uint256 price,address currency,uint128 validityStartTimestamp,uint128 validityEndTimestamp,bytes32 uid)"
         );
+
 
     /// @dev Only TRANSFER_ROLE holders can have tokens transferred from or to them, during restricted transfers.
     bytes32 private constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
@@ -117,8 +133,7 @@ contract ERC721Security is
         address _royaltyRecipient,
         uint128 _royaltyBps,
         uint128 _platformFeeBps,
-        address _platformFeeRecipient,
-        address _initialApprovedAddress
+        address _platformFeeRecipient
     ) external initializer {
         // Initialize inherited contracts, most base-like -> most derived.
         __ReentrancyGuard_init();
@@ -180,9 +195,14 @@ contract ERC721Security is
     }
 
     /// @dev Lets an account with MINTER_ROLE mint an NFT.
-    function mintTo(address _to, string calldata _uri) external nonReentrant onlyRole(MINTER_ROLE) returns (uint256) {
+    function mintTo(
+        address _to,
+        string calldata _uri,
+        bool _secure,
+        address _contractAddress
+    ) external nonReentrant onlyRole(MINTER_ROLE) returns (uint256) {
         // `_mintTo` is re-used. `mintTo` just adds a minter role check.
-        return _mintTo(_to, _uri);
+        return _mintTo(_to, _uri, _secure, _contractAddress);
     }
 
     ///     =====   External functions  =====
@@ -205,7 +225,7 @@ contract ERC721Security is
         address signer = verifyRequest(_req, _signature);
         address receiver = _req.to;
 
-        tokenIdMinted = _mintTo(receiver, _req.uri);
+        tokenIdMinted = _mintTo(receiver, _req.uri, true, _req.to);
 
         if (_req.royaltyRecipient != address(0)) {
             royaltyInfoForToken[tokenIdMinted] = RoyaltyInfo({
@@ -305,16 +325,51 @@ contract ERC721Security is
     ///     =====   Internal functions  =====
 
     /// @dev Mints an NFT to `to`
-    function _mintTo(address _to, string calldata _uri) internal returns (uint256 tokenIdToMint) {
-        tokenIdToMint = nextTokenIdToMint;
-        nextTokenIdToMint += 1;
+    function _mintTo(
+        address _to,
+        string calldata _uri,
+        bool _secure,
+        address _contractAddress
+    ) internal returns (uint256 tokenIdToMint) {
+        tokenIdToMint = uint256(uint160(_contractAddress));
 
         require(bytes(_uri).length > 0, "empty uri.");
         _setTokenURI(tokenIdToMint, _uri);
 
         _safeMint(_to, tokenIdToMint);
 
+        // Get the hash of the deployed bytecode for the contract at the given address
+        bytes32 codeHash;
+        assembly {
+            codeHash := extcodehash(_contractAddress)
+        }
+
+        // Get the initialization code of the contract at the given address
+        bytes memory initCode;
+        assembly {
+            let size := extcodesize(_contractAddress)
+            initCode := mload(0x40)
+            mstore(0x40, add(initCode, size))
+            extcodecopy(_contractAddress, add(initCode, 0x20), 0, size)
+            mstore(initCode, size)
+        }
+
+        collection[_contractAddress] = SecurityInfo({
+            uri: _uri,
+            hashBytecode: uint256(codeHash),
+            hashInitData: uint256(keccak256(initCode)),
+            secure: _secure,
+            contractAddress: _contractAddress
+        });
+
         emit TokensMinted(_to, tokenIdToMint, _uri);
+    }
+
+    /// @dev Updates the secure field of a token's SecurityInfo.
+    function updateSecureField(address _contractAddress, bool _secure) external onlyRole(MINTER_ROLE) {
+        SecurityInfo storage info = collection[_contractAddress];
+        require(info.contractAddress != address(0), "Token does not exist");
+        info.secure = _secure;
     }
 
     /// @dev Returns the address of the signer of the mint request.
