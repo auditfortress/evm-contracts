@@ -4,8 +4,8 @@ pragma solidity ^0.8.11;
 /// @author auditfortess
 
 // Interface
-import { ISecurityTokenERC721 } from "./interface/ISecurityTokenERC721.sol";
-import { IAuditfortessContract } from "./interface/IAuditfortessContract.sol";
+import { ISecurityTokenERC721 } from "../interface/ISecurityTokenERC721.sol";
+import { IAuditfortessContract } from "../interface/IAuditfortessContract.sol";
 
 import "@thirdweb-dev/contracts/infra/interface/IThirdwebContract.sol";
 import "@thirdweb-dev/contracts/extension/interface/IPlatformFee.sol";

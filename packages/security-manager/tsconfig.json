@@ -6,6 +6,6 @@
     "rootDir": "./src",
     "esModuleInterop": true
   },
-  "include": ["src/**/*.ts", "contracts/**/*.sol"],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
 }
