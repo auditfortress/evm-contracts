@@ -2,10 +2,13 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ERC721Security, ERC721Security__factory } from "../typechain-types";
+import { TestContract, TestContract__factory } from "../typechain-types";
 
 describe("ERC721Security", function () {
     let ERC721SecurityFactory: ERC721Security__factory;
     let erc721Security: ERC721Security;
+    let TestContractFactory: TestContract__factory;
+    let testContract: TestContract;
     let owner: SignerWithAddress;
     let addr1: SignerWithAddress;
     let addr2: SignerWithAddress;
@@ -25,6 +28,7 @@ describe("ERC721Security", function () {
         [owner, addr1, addr2, minter] = await ethers.getSigners();
         trustedForwarder = ethers.constants.AddressZero; // Replace with actual address if available
         ERC721SecurityFactory = await ethers.getContractFactory("ERC721Security");
+        TestContractFactory = await ethers.getContractFactory("TestContract");
     });
 
     beforeEach(async function () {
@@ -41,6 +45,7 @@ describe("ERC721Security", function () {
             PLATFORM_FEE_BPS,
             PLATFORM_FEE_RECIPIENT
         );
+        testContract = await TestContractFactory.deploy("test", 10);
     });
 
     it("should initialize correctly", async function () {
@@ -52,7 +57,7 @@ describe("ERC721Security", function () {
 
     it("should allow minting by minter", async function () {
         await erc721Security.grantRole(await erc721Security.MINTER_ROLE(), minter.address);
-        await erc721Security.connect(minter).mintTo(addr1.address, "https://token.metadata", true, addr1.address);
+        await erc721Security.connect(minter).mintTo(addr1.address, "https://token.metadata", true, testContract.address);
         expect(await erc721Security.balanceOf(addr1.address)).to.equal(1);
     });
 
