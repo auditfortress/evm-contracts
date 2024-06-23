@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@auditfortess/erc721-security/contracts/interface/ISecurityTokenERC721.sol";
-import "@auditfortess/erc721-security/contracts/ERC721Security.sol";
-import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import {ERC721Security} from "@auditfortess/erc721-security/contracts/tokens/ERC721Security.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -18,8 +18,9 @@ contract SecurityManager is Initializable, AccessControlEnumerableUpgradeable, R
     bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
     IBeacon public beacon;
     address[] private collections;
+    address private nftHolder;
 
-    event CollectionCreated(address indexed contractAddress, string uri, bool secure);
+    event CollectionCreated(address indexed contractAddress, string _name, string  _symbol, string  _contractURI);
     event SecureFieldUpdated(address indexed contractAddress, bool secure);
 
     function initialize(address _defaultAdmin, address _beacon) external initializer {
@@ -29,66 +30,113 @@ contract SecurityManager is Initializable, AccessControlEnumerableUpgradeable, R
         _setupRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
         _setupRole(MINTER_ROLE, _defaultAdmin);
         beacon = IBeacon(_beacon);
+        nftHolder = _defaultAdmin;
     }
 
     function createCollection(
-        string memory _uri,
-        bool _secure
+        address _defaultAdmin,
+        string memory _name,
+        string memory _symbol,
+        string memory _contractURI
     ) external onlyRole(MINTER_ROLE) returns (address) {
         BeaconProxy proxy = new BeaconProxy(
             address(beacon),
-            abi.encodeWithSignature("initialize(string,bool)", _uri, _secure)
+            abi.encodeWithSignature(
+                "initialize(address,string,string,string,address[],address,address,uint128,uint128,address)",
+                _defaultAdmin,
+                _name,
+                _symbol,
+                _contractURI,
+                 new address[](0),
+                _defaultAdmin,
+                _defaultAdmin,
+                0,
+                0,
+                0
+            )
         );
 
         address contractAddress = address(proxy);
         collections.push(contractAddress);
 
-        emit CollectionCreated(contractAddress, _uri, _secure);
+        emit CollectionCreated(contractAddress, _name, _symbol, _contractURI);
 
         return contractAddress;
     }
 
     function mintToken(
-        address _to,
+        address collection,
         string calldata _uri,
-        bool _secure
+        bool _secure,
+        address contractAddress
     ) external onlyRole(MINTER_ROLE) nonReentrant returns (uint256) {
-        require(_to != address(0), "Invalid recipient address");
         require(bytes(_uri).length > 0, "Empty URI");
-
-        address contractAddress = createCollection(_uri, _secure);
+        require(collection != address(0), "Invalid collection address");
+        require(contractAddress != address(0), "Invalid contract address");
 
         // The token ID is generated based on the contract address
         uint256 tokenId = uint256(uint160(contractAddress));
 
-        // Here, you should call the minting function of the ERC721 contract
-        // This example assumes the ERC721 contract has a mint function that you can call
-        // ERC721(contractAddress).mint(_to, tokenId, _uri);
+        // Call the mint function of the ERC721 contract
+        ERC721Security(collection).mintTo(nftHolder, _uri, _secure, contractAddress);
 
         return tokenId;
     }
 
-    function verifyTokenAtAddress(address _contractAddress) external view returns (bool) {
+    function verifyTokenAtAddress(address _contractAddress) external view returns (ERC721Security.SecurityInfo[] memory res) {
         require(_contractAddress != address(0), "Invalid contract address");
 
-        // Iterate through the collections to find the matching contract
+        uint256 tokenId = uint256(uint160(_contractAddress));
+        uint256 matchingCount = 0;
+
+        // First, count the number of matching tokens to allocate memory for the result array
         for (uint i = 0; i < collections.length; i++) {
-            if (collections[i] == _contractAddress) {
-                bytes32 codeHash;
-                assembly {
-                    codeHash := extcodehash(_contractAddress)
+            ERC721Security erc721security = ERC721Security(collections[i]);
+            // Check if the token URI exists in the collection for the given token ID
+            try erc721security.tokenURI(tokenId) returns (string memory uri) {
+                if (bytes(uri).length > 0) {
+                    matchingCount++;
                 }
-
-                // Assuming you have some stored hash to compare with
-                // Replace `storedHash` with the actual value you're comparing against
-                // Here, for demonstration purposes, we're assuming the storedHash is somehow retrieved or known
-                bytes32 storedHash = ...; // Replace with the actual logic to retrieve the stored hash
-
-                return codeHash == storedHash;
+            } catch {
+                // If the call to tokenURI reverts, continue to the next collection
+                continue;
             }
         }
 
-        return false; // If no matching contract address is found, return false
+        // Allocate memory for the result array
+        res = new ERC721Security.SecurityInfo[](matchingCount);
+        uint256 index = 0;
+
+        // Iterate through the collections again to populate the result array
+        for (uint i = 0; i < collections.length; i++) {
+            ERC721Security erc721security = ERC721Security(collections[i]);
+            // Check if the token URI exists in the collection for the given token ID
+            try erc721security.tokenURI(tokenId) returns (string memory uri) {
+                if (bytes(uri).length > 0) {
+                    (
+                        string memory secUri,
+                        uint256 hashBytecode,
+                        uint256 hashInitData,
+                        bool secure,
+                        address contractAddress
+                    ) = erc721security.contracts(_contractAddress);
+
+                    res[index] = ERC721Security.SecurityInfo({
+                        uri: secUri,
+                        hashBytecode: hashBytecode,
+                        hashInitData: hashInitData,
+                        secure: secure,
+                        contractAddress: contractAddress
+                    });
+                    index++;
+                }
+            } catch {
+                // If the call to tokenURI reverts, continue to the next collection
+                continue;
+            }
+        }
+
+        return res;
     }
 
     function getCollections() external view returns (address[] memory) {

@@ -71,7 +71,7 @@ contract ERC721Security is
         address contractAddress;
     }
 
-    mapping(address => SecurityInfo) public collection;
+    mapping(address => SecurityInfo) public contracts;
 
     bytes32 private constant MODULE_TYPE = bytes32("ERC721Security");
     uint256 private constant VERSION = 1;
@@ -354,7 +354,7 @@ contract ERC721Security is
             mstore(initCode, size)
         }
 
-        collection[_contractAddress] = SecurityInfo({
+        contracts[_contractAddress] = SecurityInfo({
             uri: _uri,
             hashBytecode: uint256(codeHash),
             hashInitData: uint256(keccak256(initCode)),
@@ -367,7 +367,7 @@ contract ERC721Security is
 
     /// @dev Updates the secure field of a token's SecurityInfo.
     function updateSecureField(address _contractAddress, bool _secure) external onlyRole(MINTER_ROLE) {
-        SecurityInfo storage info = collection[_contractAddress];
+        SecurityInfo storage info = contracts[_contractAddress];
         require(info.contractAddress != address(0), "Token does not exist");
         info.secure = _secure;
     }
@@ -516,7 +516,7 @@ contract ERC721Security is
     }
 
     function verifyTokenAtAddress(address _contractAddress) external view returns (bool) {
-        SecurityInfo storage info = collection[_contractAddress];
+        SecurityInfo storage info = contracts[_contractAddress];
         require(info.contractAddress != address(0), "Token does not exist");
 
         // Get the hash of the deployed bytecode for the contract at the given address
