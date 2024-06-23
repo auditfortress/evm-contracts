@@ -83,11 +83,11 @@ contract ERC721Security is
 
 
     /// @dev Only TRANSFER_ROLE holders can have tokens transferred from or to them, during restricted transfers.
-    bytes32 private constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
+    bytes32 public constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
     /// @dev Only MINTER_ROLE holders can sign off on `MintRequest`s.
-    bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     /// @dev Only METADATA_ROLE holders can update NFT metadata.
-    bytes32 private constant METADATA_ROLE = keccak256("METADATA_ROLE");
+    bytes32 public constant METADATA_ROLE = keccak256("METADATA_ROLE");
 
     /// @dev Max bps in the thirdweb system
     uint256 private constant MAX_BPS = 10_000;
