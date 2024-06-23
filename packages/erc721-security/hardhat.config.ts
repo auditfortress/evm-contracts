@@ -4,8 +4,7 @@ import { config as dotenvConfig } from "dotenv";
 import { resolve } from "path";
 import {ethers} from "ethers";
 import '@openzeppelin/hardhat-upgrades';
-import "hardhat-deploy";
-import 'hardhat-abi-exporter';
+import "hardhat-deploy-immutable-proxy";
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
@@ -39,6 +38,26 @@ const config: HardhatUserConfig = {
       verify: {
         etherscan: {
           apiKey: `${process.env.ETHERSCAN_BASE}`,
+        }
+      }
+    },
+    amoy: {
+      url: "https://polygon-amoy-bor-rpc.publicnode.com",
+      accounts: [`${process.env.PRIVATE_KEY}`],
+      chainId: 80002,
+      verify: {
+        etherscan: {
+          apiKey: `${process.env.POLYGONSCAN_API_KEY}`,
+        }
+      }
+    },
+    polygon: {
+      url: "https://polygon-rpc.com",
+      accounts: [`${process.env.PRIVATE_KEY}`],
+      chainId: 137,
+      verify: {
+        etherscan: {
+          apiKey: `${process.env.POLYGONSCAN_API_KEY}`,
         }
       }
     },
