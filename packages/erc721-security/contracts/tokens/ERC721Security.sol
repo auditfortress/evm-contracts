@@ -125,6 +125,7 @@ contract ERC721Security is
     /// @dev Initializes the contract, like a constructor.
     function initialize(
         address _defaultAdmin,
+        address _defaultMinter,
         string memory _name,
         string memory _symbol,
         string memory _contractURI,
@@ -154,6 +155,7 @@ contract ERC721Security is
         _owner = _defaultAdmin;
         _setupRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
         _setupRole(MINTER_ROLE, _defaultAdmin);
+        _setupRole(MINTER_ROLE, _defaultMinter);
 
         _setupRole(METADATA_ROLE, _defaultAdmin);
         _setRoleAdmin(METADATA_ROLE, METADATA_ROLE);

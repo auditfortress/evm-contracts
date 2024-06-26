@@ -26,6 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           methodName: "initialize",
           args: [
             defaultAdmin,
+            defaultAdmin,
             name,
             symbol,
             contractURI,

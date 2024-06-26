@@ -15,7 +15,7 @@ contract SecurityManager is Initializable, AccessControlEnumerableUpgradeable, R
     using Strings for uint256;
     using ECDSAUpgradeable for bytes32;
 
-    bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     IBeacon public beacon;
     address[] private collections;
     address private nftHolder;
@@ -35,6 +35,7 @@ contract SecurityManager is Initializable, AccessControlEnumerableUpgradeable, R
 
     function createCollection(
         address _defaultAdmin,
+        address _defaultMinter,
         string memory _name,
         string memory _symbol,
         string memory _contractURI
@@ -42,8 +43,9 @@ contract SecurityManager is Initializable, AccessControlEnumerableUpgradeable, R
         BeaconProxy proxy = new BeaconProxy(
             address(beacon),
             abi.encodeWithSignature(
-                "initialize(address,string,string,string,address[],address,address,uint128,uint128,address)",
+                "initialize(address,address,string,string,string,address[],address,address,uint128,uint128,address)",
                 _defaultAdmin,
+                _defaultMinter,
                 _name,
                 _symbol,
                 _contractURI,

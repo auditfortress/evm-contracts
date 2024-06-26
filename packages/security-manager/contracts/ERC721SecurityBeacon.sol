@@ -1,0 +1,1 @@
+import {ERC721SecurityBeacon} from "@auditfortess/erc721-security/contracts/beacon/ERC721SecurityBeacon.sol";

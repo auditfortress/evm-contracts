@@ -32,8 +32,10 @@ describe("ERC721Security", function () {
     });
 
     beforeEach(async function () {
+
         erc721Security = await ERC721SecurityFactory.deploy();
         await erc721Security.initialize(
+            owner.address,
             owner.address,
             NAME,
             SYMBOL,
@@ -59,6 +61,8 @@ describe("ERC721Security", function () {
         await erc721Security.grantRole(await erc721Security.MINTER_ROLE(), minter.address);
         await erc721Security.connect(minter).mintTo(addr1.address, "https://token.metadata", true, testContract.address);
         expect(await erc721Security.balanceOf(addr1.address)).to.equal(1);
+        const info = await erc721Security.contracts(testContract.address);
+        expect(info.secure).to.be.true;
     });
 
     it("should verify mint request", async function () {
