@@ -1,6 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { ethers } from 'ethers';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
@@ -10,23 +9,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   console.log("deployer: ", deployer);
   const defaultAdmin = deployer;
-  const name = "Test 721";
-  const symbol = "Test";
+  const name = "Default Security ERC 721";
+  const symbol = "DSE";
   const contractURI = "";
   const trustedForwarders = [];
   const primarySaleRecipient = deployer;
   const royaltyRecipient = deployer;
-  const royaltyBps = 500;
-  const platformFeeBps = 1000;
+  const royaltyBps = 0;
+  const platformFeeBps = 0;
   const platformFeeRecipient = deployer;
 
-  await deploy('ERC721Security', {
+  const deployResult = await deploy('ERC721Security', {
     from: deployer,
     proxy: {
       execute: {
         init: {
           methodName: "initialize",
           args: [
+            defaultAdmin,
             defaultAdmin,
             name,
             symbol,
@@ -36,7 +36,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
             royaltyRecipient,
             royaltyBps,
             platformFeeBps,
-            platformFeeRecipient,
             platformFeeRecipient
           ],
         },
@@ -47,7 +46,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  // transfer tokens to the deployed address
+  // Deploy the beacon contract
+  const deployResultBeacon = await deploy("ERC721SecurityBeacon",{
+    from: deployer,
+    log: true,
+    autoMine: true,
+    args: [deployResult.implementation]
+  });
 
 };
 export default func;

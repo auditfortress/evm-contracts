@@ -16,7 +16,7 @@ describe('SecurityManager', () => {
     let testContract1: TestContract1;
     let ERC721SecurityBeaconFactory: ERC721SecurityBeacon__factory;
     let eRC721SecurityBeacon: ERC721SecurityBeacon;
-
+    let erc721SecurityDeployedBySecurityManager: ERC721Security;
 
     let owner: SignerWithAddress;
     let admin: SignerWithAddress;
@@ -40,6 +40,7 @@ describe('SecurityManager', () => {
         TestContract1Factory = await ethers.getContractFactory("TestContract1");
         SecurityManagerFactory = await ethers.getContractFactory("SecurityManager");
         ERC721SecurityBeaconFactory = await ethers.getContractFactory("ERC721SecurityBeacon");
+
 
         erc721Security = await ERC721SecurityFactory.deploy();
         await erc721Security.initialize(
@@ -69,6 +70,20 @@ describe('SecurityManager', () => {
         await securityManager.deployed();
 
         testContract1 = await TestContract1Factory.deploy("test", 1);
+
+        const collectionName = 'Test Collection 2';
+        const collectionSymbol = 'TST2';
+        const collectionURI = 'https://example.com/contract-metadata-2';
+        const collectionCreateTx = await securityManager.connect(owner).createCollection(
+            admin.address,
+            securityManager.address,
+            collectionName,
+            collectionSymbol,
+            collectionURI
+        )
+        const collections = await securityManager.getCollections();
+        
+        erc721SecurityDeployedBySecurityManager = ERC721SecurityFactory.attach(collections[collections.length - 1])
     });
 
     it('should deploy with the correct roles and beacon', async () => {
@@ -92,12 +107,37 @@ describe('SecurityManager', () => {
         )).to.emit(securityManager, 'CollectionCreated');
 
         const collections = await securityManager.getCollections();
-        expect(collections).to.have.lengthOf(1);
+        expect(collections).to.have.lengthOf(2);
         // Additional assertions on the created collection if needed
     });
 
     it('should mint a token to a collection', async () => {
+        const tokenURI = 'https://example.com/token/1';
 
+        // Create a new collection to mint into
+        const collectionName = 'Test Collection';
+        const collectionSymbol = 'TST';
+        const collectionURI = 'https://example.com/contract-metadata';
+
+        const createCollectionTx = await securityManager.connect(owner).createCollection(
+            admin.address,
+            securityManager.address,
+            collectionName,
+            collectionSymbol,
+            collectionURI
+        );
+
+        const collections = await securityManager.getCollections();
+        const collectionAddress = collections[collections.length - 1];
+        // Mint a token to the newly created collection
+        await securityManager.connect(owner).mintToken(
+            collectionAddress,
+            tokenURI,
+            true,
+            testContract1.address
+        );
+
+        // Optionally, you can perform additional checks on the minted token if needed
     });
 
     it('should verify token information at a given contract address', async () => {
